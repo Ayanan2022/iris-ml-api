@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 .venv/
 venv/
+mlflow.db
+mlruns/
+mlartifacts/
+screenshots/
+frontend/
+mlflow/
+.DS_Store
