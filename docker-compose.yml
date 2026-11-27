@@ -1,0 +1,51 @@
+# SIS-3: full ML system = MLflow server + trainer + FastAPI + Streamlit
+services:
+  mlflow:
+    build: ./mlflow
+    container_name: iris-mlflow
+    ports:
+      - "${MLFLOW_PORT:-5050}:5000"
+    volumes:
+      - mlflow-data:/mlflow/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  trainer:
+    build: .
+    container_name: iris-trainer
+    command: ["python", "train.py"]
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    depends_on:
+      mlflow:
+        condition: service_healthy
+
+  api:
+    build: .
+    container_name: iris-api
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      MLFLOW_MODEL_NAME: iris-classifier
+      MLFLOW_MODEL_ALIAS: champion
+    depends_on:
+      trainer:
+        condition: service_completed_successfully
+
+  frontend:
+    build: ./frontend
+    container_name: iris-frontend
+    ports:
+      - "${UI_PORT:-8501}:8501"
+    environment:
+      API_URL: http://api:8000
+      MLFLOW_UI_URL: http://localhost:${MLFLOW_PORT:-5050}
+    depends_on:
+      - api
+
+volumes:
+  mlflow-data:

@@ -11,8 +11,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project files (code + model.joblib)
 COPY . .
 
-# Retrain the model inside the image so it always matches the installed scikit-learn version
-RUN python train.py
+# Train once at build time (local sqlite MLflow) so the image also works standalone,
+# with model.joblib matching the installed scikit-learn version.
+# In docker-compose the "trainer" service retrains against the MLflow server.
+RUN python train.py && rm -rf mlflow.db mlruns
 
 EXPOSE 8000
 
